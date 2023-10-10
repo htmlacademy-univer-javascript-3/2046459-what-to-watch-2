@@ -1,7 +1,7 @@
 # Личный проект «Что посмотреть»
 
-* Студент: [Екатерина Столбова](https://up.htmlacademy.ru/univer-js3/2/user/2426557).
-* Наставник: `Глеб Клецков`.
+* Студент: [Екатерина Столбова](https://up.htmlacademy.ru/univer-js3/2/user/).
+* Наставник: [Глеб Клецков](https://github.com/KletskovG).
 
 ---
 
