@@ -7,7 +7,6 @@ module.exports = {
     'plugin:@typescript-eslint/recommended',
     'plugin:react-hooks/recommended',
     "htmlacademy/react-typescript",
-    // "@typescript-eslint/parser",
   ],
   parser: '@typescript-eslint/parser',
   parserOptions: { ecmaVersion: 'latest', sourceType: 'module', project: 'tsconfig.json' },
@@ -22,5 +21,4 @@ module.exports = {
       rules: { '@typescript-eslint/unbound-method': 'off' }
     },
   ],
-  root: true,
 }
