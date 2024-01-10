@@ -1,11 +1,8 @@
+import { authSlice } from './auth/auth-slices.ts';
+import { filmSlice } from './films/film-slices.ts';
 import { combineReducers } from '@reduxjs/toolkit';
-import { ReducerName } from '../types/reducer-name';
-import { authorizationReducer } from './authorization-reducer/authorization-reduser';
-import { filmReducer } from './film-reducer/film-reducer';
-import { mainReducer } from './main-reducer/main-reducer';
-
+import { EReducers } from '../types/api.ts';
 export const reducer = combineReducers({
-  [ReducerName.Film]: filmReducer.reducer,
-  [ReducerName.Main]: mainReducer.reducer,
-  [ReducerName.Authorzation]: authorizationReducer.reducer
+  [EReducers.Auth]: authSlice.reducer,
+  [EReducers.Films]: filmSlice.reducer,
 });

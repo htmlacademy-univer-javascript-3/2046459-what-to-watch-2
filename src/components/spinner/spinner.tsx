@@ -1,11 +1,8 @@
-import { FC } from 'react';
+import './spinner.scss';
 
-interface SpinnerProps {
-  view?: 'display'| 'container';
-}
-
-export const Spinner: FC<SpinnerProps> = ({ view = 'container' }) => (
-  <div data-testid="spinner" className={`spinner-${view}`}>
-    <div className="spinner" />
+export const Spinner = () => (
+  <div className="spinner-container">
+    <div className="spinner"></div>
   </div>
 );
+

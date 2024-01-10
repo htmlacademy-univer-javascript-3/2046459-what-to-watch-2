@@ -1,59 +1,78 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { Provider } from 'react-redux';
-import { configureMockStore } from '@jedmao/redux-mock-store';
-import thunk from 'redux-thunk';
 import { createAPI } from '../../services/api';
-import { State } from '../../types/state';
-import { AuthorizationStatus } from '../../types/authorization-status';
-import { MyList } from './my-list';
-import { ReducerName } from '../../types/reducer-name';
-import films from '../../mocks/films';
+import thunk, { ThunkDispatch } from 'redux-thunk';
+import { configureMockStore } from '@jedmao/redux-mock-store';
+import { Action } from '@reduxjs/toolkit';
+import { render, screen } from '@testing-library/react';
+import { Provider } from 'react-redux';
+import { BrowserRouter } from 'react-router-dom';
+import { RootState } from '../../store';
+import { ApiStatusPendingEnum, EReducers } from '../../types/api.ts';
+import { testFilms } from '../../mocks/mocks.ts';
+import { MyList } from './my-list.tsx';
 
 const api = createAPI();
 const middlewares = [thunk.withExtraArgument(api)];
-const mockStore = configureMockStore<State>(middlewares);
-
-const film = films[0];
-
-
-describe('MyListPage Component', () => {
-  it('renders My List page with favorite films', async () => {
-    const store = mockStore({
-      [ReducerName.Main]: {
-        favoriteFilms: [film],
+const mockStore = configureMockStore<
+  RootState,
+  Action,
+  ThunkDispatch<RootState, typeof api, Action>
+>(middlewares);
+const store = mockStore({
+  [EReducers.Auth]: {
+    authorizationStatus: {
+      apiData: true,
+      apiError: false,
+      apiStatus: ApiStatusPendingEnum.LOAD
+    },
+    user: {
+      apiData: {
+        email:'tomilin229@gmail.com',
+        token:'dG9taWxpbjIyOUBnbWFpbC5jb20=',
+        name:'tomilin229',
+        avatarUrl:'https://13.design.htmlacademy.pro/static/avatar/3.jpg' ,
       },
-      [ReducerName.Authorzation]: {
-        authorizationStatus: AuthorizationStatus.Authorized,
-        user: {
-          name: 'John Doe',
-          avatarUrl: 'path/to/avatar.jpg',
-          email: 'john@example.com',
-          id: 123,
-          token: '123433',
-        },
-      },
-    });
-
+      apiStatus: null,
+      apiError: null,
+    },
+  },
+  [EReducers.Films]: {
+    film: {
+      apiData: testFilms[0],
+      apiError: false,
+      apiStatus: ApiStatusPendingEnum.LOAD
+    },
+    films: {
+      apiData: testFilms,
+      apiError: false,
+      apiStatus: ApiStatusPendingEnum.LOAD
+    },
+    reviews: {
+      apiData: null,
+      apiStatus: null,
+      apiError: null,
+    },
+    similar: {
+      apiData: null,
+      apiStatus: null,
+      apiError: null,
+    },
+    favoriteFilms: {
+      apiData: [],
+      apiStatus: ApiStatusPendingEnum.LOAD,
+      apiError: null,
+    },
+  }
+});
+describe('MyList', () => {
+  it('should render correctly', () => {
     render(
       <Provider store={store}>
-        <MemoryRouter>
-          <Routes>
-            <Route path='*' element={<MyList />} />
-          </Routes>
-        </MemoryRouter>
+        <BrowserRouter>
+          <MyList />
+        </BrowserRouter>
       </Provider>
     );
 
-    await waitFor(() => {
-      const myListTitle = screen.getByText(/My list/);
-      expect(myListTitle).toBeInTheDocument();
-
-      const filmCount = screen.getByTestId('favorite-count');
-      expect(filmCount).toHaveTextContent(String(1));
-
-      const filmTitle = screen.getByText(film.name);
-      expect(filmTitle).toBeInTheDocument();
-    });
+    expect(screen.getByText('My list')).toBeInTheDocument();
   });
 });

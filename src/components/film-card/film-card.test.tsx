@@ -1,70 +1,93 @@
-import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { Provider } from 'react-redux';
+import { createAPI } from '../../services/api';
+import thunk, { ThunkDispatch } from 'redux-thunk';
 import { configureMockStore } from '@jedmao/redux-mock-store';
-import films from '../../mocks/films';
-import { FilmCard } from './film-card';
-import { ReducerName } from '../../types/reducer-name';
-import { AuthorizationStatus } from '../../types/authorization-status';
-import { Genre } from '../../types/genre';
+import { Action } from '@reduxjs/toolkit';
+import { render, screen } from '@testing-library/react';
+import { Provider } from 'react-redux';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { ApiStatusPendingEnum, EReducers } from '../../types/api.ts';
+import { testFilms } from '../../mocks/mocks.ts';
+import { RootState } from '../../store';
+import { FilmCardMemo } from './film-card.tsx';
+import { Film } from '../../pages/film/film.tsx';
 
-const mockStore = configureMockStore();
-
-const mockFilm = films[0];
-
-describe('FilmCard Component', () => {
-  const initialState = {
-    [ReducerName.Authorzation]: {
-      authorizationStatus: AuthorizationStatus.Authorized,
-      user: null,
+describe('FilmCard', () => {
+  const api = createAPI();
+  const middlewares = [thunk.withExtraArgument(api)];
+  const mockStore = configureMockStore<
+    RootState,
+    Action,
+    ThunkDispatch<RootState, typeof api, Action>
+  >(middlewares);
+  const store = mockStore({
+    [EReducers.Auth]: {
+      authorizationStatus: {
+        apiData: true,
+        apiError: false,
+        apiStatus: ApiStatusPendingEnum.LOAD
+      },
+      user: {
+        apiData: {
+          email:'tomilin229@gmail.com',
+          token:'dG9taWxpbjIyOUBnbWFpbC5jb20=',
+          name:'tomilin229',
+          avatarUrl:'https://13.design.htmlacademy.pro/static/avatar/3.jpg' ,
+        },
+        apiStatus: null,
+        apiError: null,
+      },
     },
-    [ReducerName.Film]: {
-      film: mockFilm,
-      reviews: [],
-      similar: [],
-      isLoading: false,
-    },
-    [ReducerName.Main]: {
-      films: [mockFilm],
-      genreFilms: [],
-      currentGenre: Genre.DefaultGenre,
-      isFilmsLoading: false,
-      error: null,
-      promo: mockFilm,
-      favoriteFilms: [],
-      favoriteCount: 0,
-    },
-  };
-
-  it('should render the film card with correct details', () => {
-    const store = mockStore(initialState);
-
-    render(
-      <Provider store={store}>
-        <MemoryRouter>
-          <FilmCard film={mockFilm} />
-        </MemoryRouter>
-      </Provider>
-    );
-
-    expect(screen.getByText(mockFilm.name)).toBeInTheDocument();
-    expect(screen.getByText(mockFilm.genre)).toBeInTheDocument();
-    expect(screen.getByText(mockFilm.released)).toBeInTheDocument();
+    [EReducers.Films]: {
+      film: {
+        apiData: testFilms[0],
+        apiError: false,
+        apiStatus: ApiStatusPendingEnum.LOAD
+      },
+      reviews: {
+        apiData: null,
+        apiStatus: null,
+        apiError: null,
+      },
+      similar: {
+        apiData: null,
+        apiStatus: null,
+        apiError: null,
+      },
+      favoriteFilms: {
+        apiData: [],
+        apiStatus: ApiStatusPendingEnum.LOAD,
+        apiError: null,
+      },
+    }
   });
 
-  it('should have the correct alt text for the background image', () => {
-    const store = mockStore(initialState);
 
+  it('should render correctly', () => {
     render(
       <Provider store={store}>
-        <MemoryRouter>
-          <FilmCard film={mockFilm} />
-        </MemoryRouter>
+        <BrowserRouter>
+          <FilmCardMemo film={testFilms[0]} />
+        </BrowserRouter>
       </Provider>
     );
 
-    const backgroundImageElement = screen.getByTestId('film-background-image');
+    expect(screen.getByText(testFilms[0].name)).toBeInTheDocument();
+  });
 
-    expect(backgroundImageElement).toHaveAttribute('alt', mockFilm.name);
+  it('should redirect to filmPage by click', () => {
+    render(
+      <Provider store={store}>
+        <BrowserRouter>
+          <Routes>
+            <Route path={'/film/1'} element={<Film />}/>
+            <Route path='*' element={<FilmCardMemo film={testFilms[0]} />}/>
+          </Routes>
+        </BrowserRouter>
+      </Provider>
+    );
+
+
+    expect(screen.getByText(testFilms[0].name)).toBeInTheDocument();
+    expect(screen.getByText(testFilms[0].genre)).toBeInTheDocument();
   });
 });

@@ -1,150 +1,176 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { AppDispatch, State } from '../types/state';
+import { AppDispatch, RootState } from './index.ts';
 import { AxiosInstance } from 'axios';
-import { Film } from '../types/film';
-import { Review, IAddReview } from '../types/review';
-import { User } from '../types/user';
-import { AuthorizationData } from '../types/authorization-data';
+import { IUser } from '../types/user.ts';
+import { Film } from '../types/film.ts';
+import { IReview } from '../types/review.ts';
 
-export const fetchFilms = createAsyncThunk<
-  Film[],
+export const getAuthorizationStatus = createAsyncThunk<
+  IUser,
   undefined,
   {
     dispatch: AppDispatch;
-    state: State;
+    state: RootState;
     extra: AxiosInstance;
   }
->('/films', async (_arg, { extra: api }) => {
-  const { data } = await api.get<Film[]>('/films');
-  return data;
-});
+>(
+  'auth/getAuthorizationStatus',
+  async (_, { extra: api }) => {
+    const { data } = await api.get<IUser>('/login');
+    return data;
+  },
+);
 
-export const checkAuth = createAsyncThunk<
-  User,
-  undefined,
-  {
-    dispatch: AppDispatch;
-    state: State;
-    extra: AxiosInstance;
-  }
->('/checkAuth', async (_arg, { extra: api }) => {
-  const { data } = await api.get<User>('/login');
-  return data;
-});
-
-export const login = createAsyncThunk<
-  User,
-  AuthorizationData,
-  {
-    dispatch: AppDispatch;
-    state: State;
-    extra: AxiosInstance;
-  }
->('/login', async ({ email, password }, { extra: api }) => {
-  const { data } = await api.post<User>('/login', { email, password });
-  return data;
-});
-
+export const login = createAsyncThunk<IUser, { email: string; password: string }, { dispatch: AppDispatch; state: RootState; extra: AxiosInstance }>(
+  'auth/login',
+  async ({ email, password }, { extra: api }) => {
+    const { data } = await api.post<IUser>('/login', { email, password });
+    return data;
+  },
+);
 export const logout = createAsyncThunk<
   void,
   undefined,
   {
     dispatch: AppDispatch;
-    state: State;
+    state: RootState;
     extra: AxiosInstance;
   }
->('/logout', async (_arg, { extra: api }) => {
-  await api.delete('/logout');
-});
+>(
+  'auth/logout',
+  async (_, { extra: api }) => {
+    await api.delete('/logout');
+  },
+);
+
+
+export const fetchMovies = createAsyncThunk<
+  Film[],
+  undefined,
+  {
+    dispatch: AppDispatch;
+    state: RootState;
+    extra: AxiosInstance;
+  }
+>(
+  'films/fetchMovies',
+  async (_, { extra: api }) => {
+    const { data } = await api.get<Film[]>('/films');
+    return data;
+  }
+);
+
 
 export const fetchFilm = createAsyncThunk<
   Film,
   string,
   {
     dispatch: AppDispatch;
-    state: State;
+    state: RootState;
     extra: AxiosInstance;
   }
->('/films/id', async (filmId: string, { extra: api }) => {
-  const { data } = await api.get<Film>(`/films/${filmId}`);
-  return data;
-});
+>(
+  'films/fetchFilm',
+  async (filmId: string, { extra: api }) => {
+    const { data } = await api.get<Film>(`/films/${filmId}`);
+    return data;
+  }
+);
 
 export const fetchFavoriteFilms = createAsyncThunk<
-  Film[],
+    Film[],
   undefined,
   {
     dispatch: AppDispatch;
-    state: State;
+    state: RootState;
     extra: AxiosInstance;
   }
->('/favorite', async (_arg, { extra: api }) => {
-  const { data } = await api.get<Film[]>('/favorite');
-  return data;
-});
+>(
+  'films/fetchFavoriteFilms',
+  async (_, { extra: api }) => {
+    const { data } = await api.get<Film[]>('/favorite');
+    return data;
+  }
+);
 
 export const fetchPromo = createAsyncThunk<
   Film,
   undefined,
   {
     dispatch: AppDispatch;
-    state: State;
+    state: RootState;
     extra: AxiosInstance;
   }
->('/promo', async (_arg, { extra: api }) => {
-  const { data } = await api.get<Film>('/promo');
-  return data;
-});
+>(
+  'films/fetchPromo',
+  async (_, { extra: api }) => {
+    const { data } = await api.get<Film>('/promo');
+    return data;
+  }
+);
 
 export const fetchReviews = createAsyncThunk<
-  Review[],
+  IReview[],
   string,
   {
     dispatch: AppDispatch;
-    state: State;
+    state: RootState;
     extra: AxiosInstance;
   }
->('/reviews', async (filmId: string, { extra: api }) => {
-  const { data } = await api.get<Review[]>(`/comments/${filmId}`);
-  return data;
-});
+>(
+  'films/fetchReviews',
+  async (filmId: string, { extra: api }) => {
+    const { data } = await api.get<IReview[]>(`/comments/${filmId}`);
+    return data;
+  }
+);
 
 export const fetchSimilar = createAsyncThunk<
   Film[],
   string,
   {
     dispatch: AppDispatch;
-    state: State;
+    state: RootState;
     extra: AxiosInstance;
   }
->('/films/id/similar', async (filmId: string, { extra: api }) => {
-  const { data } = await api.get<Film[]>(`/films/${filmId}/similar`);
-  return data;
-});
+>(
+  'films/fetchSimilar',
+  async (filmId: string, { extra: api }) => {
+    const { data } = await api.get<Film[]>(`/films/${filmId}/similar`);
+    return data;
+  }
+);
 
 export const setFavorite = createAsyncThunk<
   Film,
   { status: boolean; filmId: string },
   {
     dispatch: AppDispatch;
-    state: State;
+    state: RootState;
     extra: AxiosInstance;
   }
->('/favorite/id/status', async ({ status, filmId }, { extra: api }) => {
-  const { data } = await api.post<Film>(
-    `/favorite/${filmId}/${status ? 1 : 0}`
-  );
-  return data;
-});
+>(
+  'films/setFavorite',
+  async ({ status, filmId }, {extra: api}) => {
+    const { data } = await api.post<Film>(
+      `/favorite/${filmId}/${status ? 1 : 0}`
+    );
+    return data;
+  }
+);
 
-export const addReview = createAsyncThunk<IAddReview,
-  { comment: string; rating: number; filmId: string; backToFilm: () => void },
+export const addReview = createAsyncThunk<
+  { redirectToFilm: () => void },
+  { comment: string; rating: number; filmId: string; redirectToFilm: () => void },
   {
     dispatch: AppDispatch;
-    state: State;
+    state: RootState;
     extra: AxiosInstance;
   }
-    >('/comments/id', async ({ comment, rating, filmId, backToFilm }, { extra: api }) => {
-      const { data } = await api.post<Review>(`/comments/${filmId}`, { comment, rating });
-      return { data, backToFilm };
-    });
+    >(
+    'films/addReview',
+    async ({ comment, rating, filmId, redirectToFilm }, { extra: api }) => {
+      await api.post<IReview>(`/comments/${filmId}`, { comment, rating });
+      return { redirectToFilm };
+    }
+    );

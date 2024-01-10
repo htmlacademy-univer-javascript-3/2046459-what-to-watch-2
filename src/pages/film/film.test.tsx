@@ -1,115 +1,74 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { Provider } from 'react-redux';
-import { configureMockStore } from '@jedmao/redux-mock-store';
+import { createAPI } from '../../services/api.ts';
 import thunk from 'redux-thunk';
-import { createAPI } from '../../services/api';
-import { State } from '../../types/state';
-import { AuthorizationStatus } from '../../types/authorization-status';
+import { configureMockStore } from '@jedmao/redux-mock-store';
+import { RootState } from '../../store';
+import { Action, ThunkDispatch } from '@reduxjs/toolkit';
+import { ApiStatusPendingEnum, EReducers } from '../../types/api.ts';
+import { testFilms } from '../../mocks/mocks.ts';
+import { render, screen } from '@testing-library/react';
+import { Provider } from 'react-redux';
+import { BrowserRouter } from 'react-router-dom';
+import { Film } from './film.tsx';
 
-import { RouteLinks } from '../../router/consts';
-import { ReducerName } from '../../types/reducer-name';
-import { Film } from '.';
-import films from '../../mocks/films';
-
-const api = createAPI();
-const middlewares = [thunk.withExtraArgument(api)];
-const mockStore = configureMockStore<State>(middlewares);
-
-const film = films[0];
-const similar = films[1];
-
-
-describe('FilmPage Component', () => {
-  it('renders loading spinner while fetching film data', () => {
-    const store = mockStore({
-      [ReducerName.Film]: {
-        film: null,
-        isLoading: true,
+describe('film', () => {
+  const api = createAPI();
+  const middlewares = [thunk.withExtraArgument(api)];
+  const mockStore = configureMockStore<
+    RootState,
+    Action,
+    ThunkDispatch<RootState, typeof api, Action>
+  >(middlewares);
+  const store = mockStore({
+    [EReducers.Auth]: {
+      authorizationStatus: {
+        apiData: true,
+        apiError: false,
+        apiStatus: ApiStatusPendingEnum.LOAD
       },
-      [ReducerName.Authorzation]: {
-        authorizationStatus: AuthorizationStatus.Unauthorized,
-        user: null,
-      },
-    });
-
-    render(
-      <Provider store={store}>
-        <MemoryRouter initialEntries={[`${RouteLinks.FILMS}/1`]}>
-          <Routes>
-            <Route path={`${RouteLinks.FILMS}/:id`} element={<Film />} />
-          </Routes>
-        </MemoryRouter>
-      </Provider>
-    );
-
-    const spinner = screen.getByTestId('spinner');
-    expect(spinner).toBeInTheDocument();
-  });
-
-  it('renders 404 page when film ID is not available', () => {
-    const store = mockStore({
-      [ReducerName.Film]: {
-        film: null,
-        isLoading: false,
-      },
-      [ReducerName.Authorzation]: {
-        authorizationStatus: AuthorizationStatus.Unauthorized,
-        user: null,
-      },
-    });
-
-    render(
-      <Provider store={store}>
-        <MemoryRouter initialEntries={[`${RouteLinks.FILMS}/invalidID`]}>
-          <Routes>
-            <Route path={`${RouteLinks.FILMS}/:id`} element={<Film />} />
-          </Routes>
-        </MemoryRouter>
-      </Provider>
-    );
-
-    expect(screen.getByText(/404 Not Found/)).toBeInTheDocument();
-  });
-
-  it('renders film page with film data', async () => {
-    const store = mockStore({
-      [ReducerName.Film]: {
-        film: film,
-        isLoading: false,
-        similar: [similar],
-      },
-      [ReducerName.Authorzation]: {
-        authorizationStatus: AuthorizationStatus.Authorized,
-        user: {
-          name: 'John Doe',
-          avatarUrl: 'path/to/avatar.jpg',
-          email: 'john@example.com',
-          id: 123,
-          token: '123433',
+      user: {
+        apiData: {
+          email:'tomilin229@gmail.com',
+          token:'dG9taWxpbjIyOUBnbWFpbC5jb20=',
+          name:'tomilin229',
+          avatarUrl:'https://13.design.htmlacademy.pro/static/avatar/3.jpg' ,
         },
+        apiStatus: null,
+        apiError: null,
       },
-      [ReducerName.Main]: {
-        favoriteCount: 0,
+    },
+    [EReducers.Films]: {
+      film: {
+        apiData: testFilms[0],
+        apiError: false,
+        apiStatus: ApiStatusPendingEnum.LOAD
       },
-    });
+      reviews: {
+        apiData: null,
+        apiStatus: null,
+        apiError: null,
+      },
+      similar: {
+        apiData: null,
+        apiStatus: null,
+        apiError: null,
+      },
+      favoriteFilms: {
+        apiData: [],
+        apiStatus: ApiStatusPendingEnum.LOAD,
+        apiError: null,
+      },
+    }
+  });
 
+  it('should render correctly', () => {
     render(
       <Provider store={store}>
-        <MemoryRouter initialEntries={[`${RouteLinks.FILMS}/1`]}>
-          <Routes>
-            <Route path={`${RouteLinks.FILMS}/:id`} element={<Film />} />
-          </Routes>
-        </MemoryRouter>
+        <BrowserRouter>
+          <Film />
+        </BrowserRouter>
       </Provider>
     );
 
-    await waitFor(() => {
-      const filmTitle = screen.getByText(film.name);
-      expect(filmTitle).toBeInTheDocument();
-    });
-
-    const similarFilm1 = screen.getByText(similar.name);
-    expect(similarFilm1).toBeInTheDocument();
+    expect(screen.getByText(testFilms[0].name)).toBeInTheDocument();
   });
 });

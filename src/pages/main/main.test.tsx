@@ -1,75 +1,99 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { Provider } from 'react-redux';
-import { configureMockStore } from '@jedmao/redux-mock-store';
-import thunk from 'redux-thunk';
 import { createAPI } from '../../services/api';
-import { State } from '../../types/state';
-import { Main } from './main';
-import { ReducerName } from '../../types/reducer-name';
-import films from '../../mocks/films';
-import { AuthorizationStatus } from '../../types/authorization-status';
+import thunk, { ThunkDispatch } from 'redux-thunk';
+import { configureMockStore } from '@jedmao/redux-mock-store';
+import { Action } from '@reduxjs/toolkit';
+import { render, screen } from '@testing-library/react';
+import { Provider } from 'react-redux';
+import { BrowserRouter } from 'react-router-dom';
+import { RootState } from '../../store';
+import { ApiStatusPendingEnum, EReducers } from '../../types/api.ts';
+import { testFilms } from '../../mocks/mocks.ts';
+import { Main } from './main.tsx';
 
-const api = createAPI();
-const middlewares = [thunk.withExtraArgument(api)];
-const mockStore = configureMockStore<State>(middlewares);
 
-const promoFilm = films[0];
-
-describe('MainPage Component', () => {
-  it('renders Main page with promo film', async () => {
-    const uniquePromoName = 'UniquePromo';
-    const store = mockStore({
-      [ReducerName.Main]: {
-        promo: {...promoFilm, name: uniquePromoName},
-        genreFilms: films,
-        films: films,
-        isPromoLoading: false,
+describe('MainPage', () => {
+  const api = createAPI();
+  const middlewares = [thunk.withExtraArgument(api)];
+  const mockStore = configureMockStore<
+    RootState,
+    Action,
+    ThunkDispatch<RootState, typeof api, Action>
+  >(middlewares);
+  const store = mockStore({
+    [EReducers.Auth]: {
+      authorizationStatus: {
+        apiData: true,
+        apiError: false,
+        apiStatus: ApiStatusPendingEnum.LOAD
       },
-      [ReducerName.Authorzation]: {
-        authorizationStatus: AuthorizationStatus.Authorized,
-        user: {
-          name: 'John Doe',
-          avatarUrl: 'path/to/avatar.jpg',
-          email: 'john@example.com',
-          id: 123,
-          token: '123433',
+      user: {
+        apiData: {
+          email:'tomilin229@gmail.com',
+          token:'dG9taWxpbjIyOUBnbWFpbC5jb20=',
+          name:'tomilin229',
+          avatarUrl:'https://13.design.htmlacademy.pro/static/avatar/3.jpg' ,
         },
-      }
-    });
-
-    render(
-      <Provider store={store}>
-        <MemoryRouter>
-          <Main />
-        </MemoryRouter>
-      </Provider>
-    );
-
-    await waitFor(() => {
-      const promoFilmTitle = screen.getByText(promoFilm.name);
-      expect(promoFilmTitle).toBeInTheDocument();
-
-    });
+        apiStatus: null,
+        apiError: null,
+      },
+    },
+    [EReducers.Films]: {
+      film: {
+        apiData: testFilms[0],
+        apiError: false,
+        apiStatus: ApiStatusPendingEnum.LOAD
+      },
+      films: {
+        apiData: testFilms,
+        apiError: false,
+        apiStatus: ApiStatusPendingEnum.LOAD
+      },
+      reviews: {
+        apiData: null,
+        apiStatus: null,
+        apiError: null,
+      },
+      similar: {
+        apiData: null,
+        apiStatus: null,
+        apiError: null,
+      },
+      favoriteFilms: {
+        apiData: [],
+        apiStatus: ApiStatusPendingEnum.LOAD,
+        apiError: null,
+      },
+      promo: {
+        apiData: testFilms[0],
+        apiError: false,
+        apiStatus: ApiStatusPendingEnum.LOAD
+      },
+    }
   });
 
-  it('renders loading spinner while fetching promo film', () => {
-    const store = mockStore({
-      [ReducerName.Main]: {
-        promo: null,
-        isPromoLoading: true,
-      },
-    });
-
+  it('should render correctly, when NoAuth', () => {
     render(
       <Provider store={store}>
-        <MemoryRouter>
+        <BrowserRouter>
           <Main />
-        </MemoryRouter>
+        </BrowserRouter>
       </Provider>
     );
 
-    const spinner = screen.getByTestId('spinner');
-    expect(spinner).toBeInTheDocument();
+    expect(screen.getByText(testFilms[0].name)).toBeInTheDocument();
+    expect(screen.queryByText(/Sign in/i)).not.toBeInTheDocument();
+  });
+
+  it('should render correctly, when Auth', () => {
+    render(
+      <Provider store={store}>
+        <BrowserRouter>
+          <Main />
+        </BrowserRouter>
+      </Provider>
+    );
+
+    expect(screen.getByText(testFilms[0].name)).toBeInTheDocument();
+    expect(screen.getByText(/Sign out/i)).toBeInTheDocument();
   });
 });
