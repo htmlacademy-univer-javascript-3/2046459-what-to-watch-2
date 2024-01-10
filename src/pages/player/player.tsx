@@ -1,154 +1,100 @@
-import React, {
-  useState,
-  useRef,
-  useCallback,
-  useLayoutEffect,
-  useMemo,
-} from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router-dom';
-import { RouteLinks } from '../../router/consts';
-import { Spinner } from '../../components/spinner/spinner';
-import { useAppDispatch, useAppSelector } from '../../hooks/store';
-import { ReducerName } from '../../types/reducer-name';
-import { fetchFilm } from '../../store/api-actions';
-import { Page404 } from '../page-404';
+import { FC, memo, useCallback, useEffect, useRef, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { Page404 } from '../page-404/page-404.tsx';
+import { useAppDispatch, useAppSelector } from '../../hooks/store.ts';
+import {
+  selectFilmData, selectFilmError, selectFilmStatus
+} from '../../store/films/film-selectors.ts';
+import { Spinner } from '../../components/spinner/spinner.tsx';
+import { Buttons } from '../../components/buttons/buttons.ts';
+import { fetchFilm } from '../../store/api-actions.ts';
 
-const SECONDS_IN_HOUR = 3600;
-const SECONDS_IN_MINUTE = 60;
+const MAX_PROGRESS = 100;
 
-
-const PlayerPage: React.FC = () => {
-  const { id } = useParams();
+export const PlayerPage: FC = () => {
+  const film = useAppSelector(selectFilmData);
+  const filmError = useAppSelector(selectFilmError);
+  const filmStatus = useAppSelector(selectFilmStatus);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [isLoadingVideo, setIsLoadingVideo] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const { id = '' } = useParams();
   const dispatch = useAppDispatch();
-  const film = useAppSelector((state) => state[ReducerName.Film].film);
-  const isLoading = useAppSelector((state) => state[ReducerName.Film].isLoading);
 
-  const navigate = useNavigate();
-
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [time, setTime] = useState<number>(0);
-  const progress = useMemo(() => Number(time) / Number(videoRef.current?.duration || 1) * 100, [time]);
-
-
-  const togglePlay = useCallback(() => {
-    if (isPlaying) {
-      videoRef.current?.pause();
-    } else {
-      videoRef.current?.play();
+  useEffect(() => {
+    if (id) {
+      dispatch(fetchFilm(id));
     }
-  }, [isPlaying]);
+  }, [id, dispatch]);
 
-  const toggleFullScreen = useCallback(() => {
+  const handleFullScreen = useCallback(() => {
     if (videoRef.current && videoRef.current.requestFullscreen) {
       videoRef.current.requestFullscreen();
     }
+  }, [videoRef]);
+
+
+  const handlePlayClick = useCallback(() => {
+    if (videoRef.current) {
+      setIsPlaying((prev) => !prev);
+      if (videoRef.current.paused) {
+        videoRef.current.play();
+      } else {
+        videoRef.current.pause();
+      }
+    }
+  }, [videoRef]);
+
+  const handleUpdate = useCallback(() => {
+    if (!videoRef.current) {
+      return;
+    }
+    setTimeLeft(Math.trunc(videoRef.current.duration - videoRef.current.currentTime));
+    setProgress((videoRef.current.currentTime / videoRef.current.duration) * MAX_PROGRESS);
+  }, [videoRef]);
+
+  const getFormatTime = useCallback((seconds: number) => {
+    const date = new Date(seconds * 1000);
+    const formattedTime = date.toISOString().slice(11, 19).toString();
+    return `-${formattedTime.startsWith('00') ? formattedTime.substring(3) : formattedTime}`;
   }, []);
 
-  const exitPlayer = useCallback(
-    () => id && navigate(`/films/${id}`),
-    [id, navigate]
-  );
 
-  useLayoutEffect(() => {
-    let isMounted = true;
-
-    if (isMounted && id) {
-      dispatch(fetchFilm(id));
-    }
-    return () => {
-      isMounted = false;
-    };
-  }, [id, dispatch]);
-
-  function getTimeLeft() {
-    if (film === null || !videoRef.current) {
-      return '00:00:00';
-    }
-    const timeLeft = (videoRef.current?.duration || 0) - time;
-    const hours = Math.floor(timeLeft / SECONDS_IN_HOUR).toString().padStart(2, '0');
-    const minutes = Math.floor((timeLeft / SECONDS_IN_MINUTE) % SECONDS_IN_MINUTE).toString().padStart(2, '0');
-    const seconds = Math.floor((timeLeft % SECONDS_IN_MINUTE)).toString().padStart(2, '0');
-    return (hours !== '00') ? `${hours}:${minutes}:${seconds}` : `${minutes}:${seconds}`;
+  if (filmError || !film) {
+    return <Page404 />;
   }
 
-  if (isLoading) {
-    return <Spinner view='display' />;
+  if (!film || filmStatus === 'LOADING') {
+    return <Spinner />;
   }
 
-  if (!id) {
-    return <Navigate to={RouteLinks.NOT_FOUND} />;
-  }
-
-  return film ? (
+  return (
     <div className="player">
-      <video
-        ref={videoRef}
-        src={film.videoLink}
-        className="player__video"
-        poster={film.backgroundImage}
-        data-testid="video-player"
-        autoPlay
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
-        onTimeUpdate={() => setTime(videoRef.current?.currentTime || 0)}
-      />
-
-      <button type="button" className="player__exit" onClick={exitPlayer}>
-        Exit
-      </button>
+      {isLoadingVideo && <Spinner />}
+      <video autoPlay preload={'auto'} ref={videoRef} src={film.videoLink} className="player__video" poster={film.backgroundImage} onLoadStart={() => setIsLoadingVideo(true)} onLoadedData={() => setIsLoadingVideo(false)} onTimeUpdate={handleUpdate} />
+      <Link type='button' className="player__exit" to={`/films/${film.id}`}>
+            Exit
+      </Link>
 
       <div className="player__controls">
         <div className="player__controls-row">
           <div className="player__time">
-            <progress
-              className="player__progress"
-              value={progress}
-              max='100'
-            />
-            <div
-              className="player__toggler"
-            >
-              Toggler
-            </div>
+            <progress className="player__progress" value={progress} max={MAX_PROGRESS}/>
+            <div className="player__toggler" style={{left: `${progress}%`}}>Toggler</div>
           </div>
-          <div className="player__time-value">-{getTimeLeft()}</div>
+          <div className="player__time-value">{getFormatTime(timeLeft)}</div>
         </div>
 
         <div className="player__controls-row">
-          <button type="button" data-testid="play-button"
-            className="player__play" onClick={togglePlay}
-          >
-            {isPlaying ? (
-              <svg viewBox="0 0 19 19" width="19" height="19">
-                <use xlinkHref="#pause"></use>
-              </svg>
-            ) : (
-              <svg viewBox="0 0 19 19" width="19" height="19">
-                <use xlinkHref="#play-s"></use>
-              </svg>
-            )}
-            <span>{isPlaying ? 'Pause' : 'Play'}</span>
-          </button>
-          <div className="player__name">{film.name}</div>
-
-          <button
-            type="button"
-            className="player__full-screen"
-            onClick={toggleFullScreen}
-          >
-            <svg viewBox="0 0 27 27" width="27" height="27">
-              <use xlinkHref="#full-screen"></use>
-            </svg>
-            <span>Full screen</span>
-          </button>
+          <Buttons.PausePlay setIsPlaying={handlePlayClick} isPlaying={isPlaying}/>
+          <div className="player__name">{film?.name}</div>
+          <Buttons.FullScreen handleOnClick={handleFullScreen}/>
         </div>
       </div>
     </div>
-  ) : (
-    <Page404 />
   );
 };
 
-export const Player = React.memo(PlayerPage);
+export const Player = memo(PlayerPage);

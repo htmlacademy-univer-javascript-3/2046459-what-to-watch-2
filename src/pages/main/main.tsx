@@ -1,42 +1,49 @@
-import React, { useLayoutEffect } from 'react';
-import { FilmCard } from '../../components/film-card';
-import { Catalog } from '../../components/catalog';
-import { Footer } from '../../components/footer';
-import { useAppDispatch, useAppSelector } from '../../hooks/store';
-import { Spinner } from '../../components/spinner/spinner';
-import { ReducerName } from '../../types/reducer-name';
-import { fetchPromo } from '../../store/api-actions';
-import { Page404 } from '../page-404';
+import { FC, memo, useEffect } from 'react';
+import { Footer } from '../../components/footer/footer.tsx';
+import { FilmCardMemo } from '../../components/film-card/film-card.tsx';
+import { CatalogMemo } from '../../components/catalog/catalog.tsx';
+import { useAppDispatch, useAppSelector } from '../../hooks/store.ts';
+import { Spinner } from '../../components/spinner/spinner.tsx';
+import { Page404 } from '../page-404/page-404.tsx';
+import {
+  selectFilmsData,
+  selectFilmsError,
+  selectFilmsStatus, selectPromoData
+} from '../../store/films/film-selectors.ts';
+import { fetchMovies, fetchPromo } from '../../store/api-actions.ts';
 
-const MainPage: React.FC = () => {
+const MainPage: FC = () => {
   const dispatch = useAppDispatch();
-  const { isPromoLoading, promo } = useAppSelector((state) => state[ReducerName.Main]);
+  const films = useAppSelector(selectFilmsData);
+  const filmError = useAppSelector(selectFilmsError);
+  const filmStatus = useAppSelector(selectFilmsStatus);
+  const promoData = useAppSelector(selectPromoData);
 
-  useLayoutEffect(() => {
-    let isMounted = true;
-
-    if (isMounted) {
-      dispatch(fetchPromo());
+  useEffect(() => {
+    dispatch(fetchPromo());
+    if (films === null) {
+      dispatch(fetchMovies());
     }
-    return () => {
-      isMounted = false;
-    };
-  }, [dispatch]);
+  }, [dispatch, films]);
 
-  if (isPromoLoading) {
+  if (filmError) {
+    return <Page404 />;
+  }
+
+  if (!promoData || filmStatus === 'LOADING') {
     return <Spinner />;
   }
 
-  return promo ? (
+  return (
     <>
-      <FilmCard film={promo} />
+      <FilmCardMemo film={promoData} />
+
       <div className="page-content">
-        <Catalog />
+        <CatalogMemo withGenres />
         <Footer />
       </div>
     </>
-  ) : (
-    <Page404 />
   );
 };
-export const Main = React.memo(MainPage);
+
+export const Main = memo(MainPage);

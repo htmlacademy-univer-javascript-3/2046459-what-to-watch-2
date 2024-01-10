@@ -1,46 +1,26 @@
 import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { Logo } from './logo';
+import { Route, Routes } from 'react-router-dom';
+import { createMemoryHistory } from 'history';
+import userEvent from '@testing-library/user-event';
+import { HistoryRouter } from '../history-router/history-router.tsx';
+import Logo from './logo.tsx';
 
-describe('Logo Component', () => {
-  it('should render the logo link with the correct text and attributes', () => {
+const history = createMemoryHistory();
+history.push('/logo');
+
+describe('Logo', () => {
+  it('should redirect to MainScreen, when click by Link', async () => {
     render(
-      <MemoryRouter>
-        <Logo />
-      </MemoryRouter>
+      <HistoryRouter history={history}>
+        <Routes>
+          <Route path={'/logo'} element={<Logo />} />
+          <Route path={'/'} element={<p>MainPage</p>} />
+        </Routes>
+      </HistoryRouter>
     );
 
-    const logoLink = screen.getByTestId('logo-link');
+    await userEvent.click(screen.getByRole('link'));
 
-    expect(logoLink).toBeInTheDocument();
-    expect(logoLink).toHaveAttribute('href', '/');
-    expect(logoLink).toHaveTextContent('WTW');
-  });
-
-  it('should render the logo letters', () => {
-    render(
-      <MemoryRouter>
-        <Logo />
-      </MemoryRouter>
-    );
-
-    const logoLetters = screen.getAllByTestId('logo-letter');
-
-    expect(logoLetters).toHaveLength(3);
-    expect(logoLetters[0]).toHaveTextContent('W');
-    expect(logoLetters[1]).toHaveTextContent('T');
-    expect(logoLetters[2]).toHaveTextContent('W');
-  });
-
-  it('should apply additional class name when provided', () => {
-    render(
-      <MemoryRouter>
-        <Logo className="custom-logo-class" />
-      </MemoryRouter>
-    );
-
-    const logoLink = screen.getByTestId('logo-link');
-
-    expect(logoLink).toHaveClass('custom-logo-class');
+    expect(screen.getByText('MainPage')).toBeInTheDocument();
   });
 });

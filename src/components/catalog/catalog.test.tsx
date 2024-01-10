@@ -1,63 +1,82 @@
-import { render, fireEvent, screen } from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
+import {BrowserRouter} from 'react-router-dom';
+import { CatalogMemo } from './catalog.tsx';
+import { createAPI } from '../../services/api.ts';
+import thunk, { ThunkDispatch } from 'redux-thunk';
 import { configureMockStore } from '@jedmao/redux-mock-store';
+import { RootState } from '../../store';
+import { Action } from '@reduxjs/toolkit';
+import { ApiStatusPendingEnum, EReducers } from '../../types/api.ts';
+import { testFilms } from '../../mocks/mocks.ts';
 import { Provider } from 'react-redux';
-import { MemoryRouter } from 'react-router-dom';
-import { Catalog } from './catalog';
-import { ReducerName } from '../../types/reducer-name';
-import films from '../../mocks/films';
-import { State } from '../../types/state';
-import thunk from 'redux-thunk';
-import { Genre } from '../../types/genre';
 
-const mockFilm = films[0];
-const mockStore = configureMockStore<State>([thunk]);
 
-describe('Catalog Component', () => {
-  it('should render without errors', () => {
-    const store = mockStore({
-      [ReducerName.Main]: {
-        genreFilms: [mockFilm],
-        isFilmsLoading: false,
-        films: films,
-        currentGenre: Genre.DefaultGenre,
+const api = createAPI();
+const middlewares = [thunk.withExtraArgument(api)];
+const mockStore = configureMockStore<
+  RootState,
+  Action,
+  ThunkDispatch<RootState, typeof api, Action>
+>(middlewares);
+const store = mockStore({
+  [EReducers.Auth]: {
+    authorizationStatus: {
+      apiData: true,
+      apiError: false,
+      apiStatus: ApiStatusPendingEnum.LOAD
+    },
+    user: {
+      apiData: {
+        email:'tomilin229@gmail.com',
+        token:'dG9taWxpbjIyOUBnbWFpbC5jb20=',
+        name:'tomilin229',
+        avatarUrl:'https://13.design.htmlacademy.pro/static/avatar/3.jpg' ,
       },
-    });
+      apiStatus: null,
+      apiError: null,
+    },
+  },
+  [EReducers.Films]: {
+    film: {
+      apiData: testFilms[0],
+      apiError: false,
+      apiStatus: ApiStatusPendingEnum.LOAD
+    },
+    films: {
+      apiData: testFilms,
+      apiError: false,
+      apiStatus: ApiStatusPendingEnum.LOAD
+    },
+    reviews: {
+      apiData: null,
+      apiStatus: null,
+      apiError: null,
+    },
+    similar: {
+      apiData: null,
+      apiStatus: null,
+      apiError: null,
+    },
+    favoriteFilms: {
+      apiData: [],
+      apiStatus: ApiStatusPendingEnum.LOAD,
+      apiError: null,
+    },
+  }
+});
 
+
+describe('Catalog', () => {
+  it('should render correctly', () => {
     render(
-      <MemoryRouter>
-        <Provider store={store}>
-          <Catalog />
-        </Provider>
-      </MemoryRouter>
+      <Provider store={store}>
+        <BrowserRouter>
+          <CatalogMemo/>
+        </BrowserRouter>
+      </Provider>
+
     );
 
-    const filmsList = screen.getByTestId('films-list');
-    expect(filmsList).toBeInTheDocument();
-  });
-
-  it('should handle "Show more" button click', () => {
-    const store = mockStore({
-      [ReducerName.Main]: {
-        genreFilms: films,
-        isFilmsLoading: false,
-        films: films,
-        currentGenre: Genre.DefaultGenre,
-      },
-    });
-
-    render(
-      <MemoryRouter>
-        <Provider store={store}>
-          <Catalog />
-        </Provider>
-      </MemoryRouter>
-    );
-
-    const showMoreButton = screen.getByTestId('show-more');
-
-    fireEvent.click(showMoreButton);
-
-    const filmsList = screen.getByTestId('films-list');
-    expect(filmsList.children.length).toBe(16);
+    expect(screen.getByText('Catalog')).toBeInTheDocument();
   });
 });

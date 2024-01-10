@@ -1,40 +1,57 @@
-import React, { useEffect } from 'react';
-import { Catalog } from '../../components/catalog';
-import { Header } from '../../components/header';
-import { Footer } from '../../components/footer';
-import { useAppDispatch, useAppSelector } from '../../hooks/store';
-import { fetchFavoriteFilms } from '../../store/api-actions';
-import { ReducerName } from '../../types/reducer-name';
+import { FC, memo, useCallback, useEffect } from 'react';
+import { Footer } from '../../components/footer/footer.tsx';
+import Logo from '../../components/logo/logo.tsx';
+import { useAppDispatch, useAppSelector } from '../../hooks/store.ts';
+import { favoriteCount } from '../../store/films/film-selectors.ts';
+import { fetchFavoriteFilms, logout } from '../../store/api-actions.ts';
+import { CatalogMemo } from '../../components/catalog/catalog.tsx';
+import { authorizationStatusData } from '../../store/auth/auth-selectors.ts';
+import { useNavigate } from 'react-router-dom';
 
-const MyListPage: React.FC = () => {
+
+export const MyListPage: FC = () => {
   const dispatch = useAppDispatch();
-
-  const favoriteFilms = useAppSelector((state) => state[ReducerName.Main].favoriteFilms);
+  const myFavoriteCount = useAppSelector(favoriteCount);
+  const isAuth = useAppSelector(authorizationStatusData);
+  const history = useNavigate();
 
   useEffect(() => {
-    let isMounted = true;
+    dispatch(fetchFavoriteFilms);
+  }, [dispatch]);
 
-    if (isMounted) {
-      dispatch(fetchFavoriteFilms());
+  useEffect(() => {
+    if (!isAuth) {
+      history('/login');
     }
+  }, [history, isAuth]);
 
-    return () => {
-      isMounted = false;
-    };
+  const userLogout = useCallback(() => {
+    dispatch(logout());
   }, [dispatch]);
 
   return (
     <div className="user-page">
-      <Header className="user-page__head">
-        <h1 className="page-title user-page__title">
-          My list <span data-testid="favorite-count" className="user-page__film-count">{favoriteFilms.length}</span>
-        </h1>
-      </Header>
+      <header className="page-header user-page__head">
+        <Logo />
 
-      <Catalog withoutButton withoutGenre films={favoriteFilms} />
+        <h1 className="page-title user-page__title" id='my-list-title'>My list <span className="user-page__film-count">{myFavoriteCount}</span></h1>
+        <ul className="user-block">
+          <li className="user-block__item">
+            <div className="user-block__avatar">
+              <img src="img/avatar.jpg" alt="User avatar" width="63" height="63" />
+            </div>
+          </li>
+          <li className="user-block__item">
+            <button onClick={userLogout} className="user-block__link sign-out">Sign out</button>
+          </li>
+        </ul>
+      </header>
 
-      <Footer />
+      <CatalogMemo isFavoriteCatalog />
+
+      <Footer/>
     </div>
   );
 };
-export const MyList = React.memo(MyListPage);
+
+export const MyList = memo(MyListPage);
